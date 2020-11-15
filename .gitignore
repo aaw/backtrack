@@ -1,0 +1,11 @@
+# emacs
+*~
+\#*\#
+.\#*
+
+# C++
+bin/*
+tbin/*
+
+# Python
+__pycache__
