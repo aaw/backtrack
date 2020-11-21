@@ -39,7 +39,7 @@ extern int FLAGS_verbosity;
 
 struct Logger {
     Logger(const std::string& filename, int line) {
-        PRINT << "c [" << filename << ":" << line << "] ";
+        PRINT << "[" << filename << ":" << line << "] ";
     }
 
     ~Logger() { PRINT << std::endl; }
@@ -53,8 +53,7 @@ struct Logger {
 
 struct AbortLogger {
     AbortLogger(const std::string& filename, int line) {
-        PRINT << "s UNKNOWN" << std::endl;
-        PRINT << "c [FATAL " << filename << ":" << line << "] ";
+        PRINT << "[FATAL " << filename << ":" << line << "] ";
     }
 
     ~AbortLogger() {

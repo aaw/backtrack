@@ -8,7 +8,7 @@ RM=rm -f
 
 all: bin/nqueens
 
-bin/nqueens: src/nqueens.cc src/logging.h
+bin/nqueens: src/nqueens.cc src/logging.h src/counters.h src/flags.h
 	g++ $(CPPFLAGS) -o bin/nqueens src/nqueens.cc $(LDLIBS)
 
 clean:
