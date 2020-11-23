@@ -7,19 +7,42 @@
 #include <sstream>
 
 struct NQueens {
+    std::vector<size_t> x;  // Current solution, permutation of n.
+
+    // The n-queens problem asks for a configuration of n queens on an n-by-n
+    // chessboard with no two queens attacking each other. In other words, we
+    // want a permutation x of [0,n) such that:
+    //
+    //     |x[k] - x[j]| != k - j for 0 <= j < k < n
+    //
+    // We don't need to check all pairs of k, j each time we make a branch
+    // decision during backtracking. Instead, we keep three bitvectors a, b, c
+    // where:
+    //
+    // a[t]   means 'x[k] = t', for some k in [0,n).
+    // b[t]   means 'x[k] + k = t' for some k in [0,n).
+    // c[t+n] means 'x[k] - k = t' for some k in [0,n).
+    //
+    // Then x[l] can be set to t if all of a[t], b[t+l], and c[t-l+n] are false.
+    // Otherwise, we continue searching.
+
+    std::vector<bool> a, b, c;
+
+    size_t l;  // Backtrack level. l == n means we have a solution.
+    size_t t;  // Current choice we're considering for level l.
+    size_t n;  // Number of queens in the problem. Chessboard is n x n.
+
     NQueens(size_t n) :
         x(n), a(n), b(2*n-1), c(2*n-1), l(0), t(0), n(n) { }
 
     inline void track() {
         a[t] = b[t+l] = c[t-l+n] = true;
-        x[l] = t;
-        ++l;
+        x[l++] = t;
     }
 
     inline void backtrack() {
         while (t >= n-1) {
-            if (l == 0) exit(0);
-            --l;
+            if (l-- == 0) exit(0);
             t = x[l];
             c[t-l+n] = b[t+l] = a[t] = false;
         }
@@ -46,10 +69,6 @@ struct NQueens {
             track();
         }
     }
-
-    std::vector<size_t> x;
-    std::vector<bool> a, b, c;
-    size_t l, t, n;
 };
 
 int main(int argc, char** argv) {
@@ -59,7 +78,6 @@ int main(int argc, char** argv) {
     init_counters();
     LOG(1) << "Solving n queens with n = " << FLAGS_size;
     CHECK(FLAGS_size > 0) << "Please pass n > 0 (-n)";
-    NQueens n(FLAGS_size);
-    n.solve();
+    NQueens(FLAGS_size).solve();
     return 0;
 }
