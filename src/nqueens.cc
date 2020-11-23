@@ -74,10 +74,11 @@ struct NQueens {
 int main(int argc, char** argv) {
     int oidx;
     CHECK(parse_flags(argc, argv, &oidx))
-        << "Usage: " << argv[0] << " <filename>";
+        << "Usage: " << argv[0] << " -nN [-vV]\n"
+        << "N: number of queens (> 0)\n"
+        << "V: verbosity (>= 2 prints solutions)\n";
     init_counters();
     LOG(1) << "Solving n queens with n = " << FLAGS_size;
-    CHECK(FLAGS_size > 0) << "Please pass n > 0 (-n)";
     NQueens(FLAGS_size).solve();
     return 0;
 }

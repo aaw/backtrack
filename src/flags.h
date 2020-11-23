@@ -51,6 +51,9 @@ bool parse_flags(int argc, char* argv[], int* option_index) {
             return false;
         }
     }
+
+    if (FLAGS_size <= 0) return false;  // -n required.
+
     *option_index = optind;
     return true;
 }
