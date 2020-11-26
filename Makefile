@@ -6,7 +6,7 @@ LDFLAGS=-g
 LDLIBS=
 RM=rm -f
 
-all: bin/nqueens
+all: bin/nqueens bin/wqueens
 
 bin/nqueens: src/nqueens.cc src/logging.h src/counters.h src/flags.h
 	g++ $(CPPFLAGS) -o bin/nqueens src/nqueens.cc $(LDLIBS)
