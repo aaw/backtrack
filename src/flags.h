@@ -18,6 +18,7 @@
 int FLAGS_verbosity = 1;
 bool FLAGS_counters = true;
 size_t FLAGS_size = 0;
+size_t FLAGS_diff = 0;
 
 bool parse_flags(int argc, char* argv[], int* option_index) {
     *option_index = 0;
@@ -27,10 +28,11 @@ bool parse_flags(int argc, char* argv[], int* option_index) {
         { "verbosity",      required_argument,  NULL, 'v' },
         { "size",           required_argument,  NULL, 'n' },
         { "counters",       no_argument,        NULL, 'c' },
+        { "diff",           required_argument,  NULL, 'd' },
         { 0, 0, 0, 0}
     };
 
-    char optstring[] = "v:n:c";
+    char optstring[] = "v:n:d:c";
 
     while (1) {
         c = getopt_long(argc, argv, optstring, long_options, nullptr);
@@ -43,6 +45,9 @@ bool parse_flags(int argc, char* argv[], int* option_index) {
             break;
         case 'c':
             FLAGS_counters = true;
+            break;
+        case 'd':
+            FLAGS_diff = atoi(optarg);
             break;
         case 'n':
             FLAGS_size = atoi(optarg);
