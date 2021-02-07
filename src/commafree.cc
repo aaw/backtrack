@@ -8,9 +8,21 @@
 typedef uint16_t addr_t;
 typedef uint16_t mem_t;
 
+enum State {
+    RED = 0,
+    BLUE = 1,
+    GREEN = 2,
+};
+
 uint16_t u16(size_t x) {
     // TODO: add assert in debug mode
     return static_cast<uint16_t>(x);
+}
+
+const char* print_hex(uint16_t h) {
+    static char x[5];
+    sprintf(x, "%04x", h);
+    return x;
 }
 
 struct uframe_t {
@@ -18,7 +30,8 @@ struct uframe_t {
     mem_t val;
 };
 
-struct State {
+struct Backtrack {
+    size_t m;
     size_t m4;
     size_t M;
     size_t L;
@@ -42,13 +55,16 @@ struct State {
     std::vector<uframe_t> undo;
     std::vector<mem_t> hex2m;
     std::vector<mem_t> m2hex;
+    std::vector<mem_t> cl;  // Maps base-m word to prime string class ID
+    std::vector<mem_t> clrep;  // Mapss class IDs to canonical base-m words
     size_t l;
     mem_t x;
     size_t c;
     mem_t s;
     mem_t f;
 
-    State(mem_t m, mem_t g) :
+    Backtrack(mem_t m, mem_t g) :
+        m(m),
         m4(m*m*m*m),
         M(23.5*m4),
         L((m4 - m*m)/4),
@@ -62,7 +78,6 @@ struct State {
         poison(22*m4),
         mem(M),
         stamp(M),
-        cl((m4 - m*m) / 4)
         sigma(0),
         free(L),
         ifree(L),
@@ -70,6 +85,10 @@ struct State {
         C(L+1),
         S(L+1),
         U(L+1),
+        hex2m(make_hex(m-1,m-1,m-1,m-1)+1),
+        m2hex(m4),
+        cl(m4),
+        clrep((m4 - m*m) / 4),
         l(1),
         x(0x0001),
         c(0),
@@ -89,8 +108,8 @@ struct State {
             for (mem_t b = 0; b < m; ++b) {
                 for (mem_t c = 0; c < m; ++c) {
                     for (mem_t d = 0; d < m; ++d) {
-                        hex2m[a<<12 | b<<8 | c<<4 | d] = ((a*m+b)*m+c)*m+d;
-                        m2hex[((a*m+b)*m+c)*m+d] = a<<12 | b<<8 | c<<4 | d;
+                        hex2m[make_hex(a,b,c,d)] = make_m(a,b,c,d);
+                        m2hex[make_m(a,b,c,d)] = make_hex(a,b,c,d);
                     }
                 }
             }
@@ -98,12 +117,18 @@ struct State {
 
         // Populate classes. This is essentially Algorithm 7.2.1.1.F, iterating
         // over all prime strings of base m, length 4.
-        mem_t a[5] = {-1, 0, 0, 0, 0};
+        mem_t a[5] = {0, 0, 0, 0, 0};
+
+        size_t class_id = 0;
         for (int i = 1; i != 0;) {
             if (i == 4) {
+                uint16_t h = make_hex(a[1],a[2],a[3],a[4]);
+                cl[hex2m[h]] = class_id;
+                clrep[class_id] = hex2m[h];
                 // Push back a_m to cl, note index as clidx.
                 // Add all shifts of a_m that are blue to clhead/cltail
                 // Add all shifts to clinv
+                class_id++;
             }
             i = 4;
             while (a[i] == m-1) { --i; }
@@ -136,13 +161,29 @@ struct State {
     inline size_t s3tail(mem_t) { return s3off + m4 + (hex2m[x & 0x0fff]<<4); }
     inline size_t cltail(mem_t) { return cloff + m4 + cl[hex2m[x]]; }
 
+    inline uint16_t make_hex(mem_t a, mem_t b, mem_t c, mem_t d) {
+        return a<<12 | b<<8 | c<<4 | d;
+    }
+
+    inline uint16_t make_m(mem_t a, mem_t b, mem_t c, mem_t d) {
+        return ((a*m+b)*m+c)*m+d;
+    }
+
+    void bump_stamp() {
+        sigma++;
+        if (sigma == 0) {  // Overflow.
+            for (size_t i = 0; i < stamp.size(); ++i) { stamp[i] = 0; }
+            sigma = 1;
+        }
+    }
+
     void try_again() {
         // C5. [Try again.]
         while (undo.size() > U[l]) {
             mem[undo.back().addr] = undo.back().val;
             undo.pop_back();
         }
-        sigma++;
+        bump_stamp();
         // TODO: redden x.
     }
 
@@ -197,7 +238,7 @@ struct State {
         while (true) {
             // C3. [Try the candidate.]
             U[l] = undo.size();
-            sigma++;
+            bump_stamp();
             if (x < 0) {
                 if (s == 0 || l == 1) {
                     backtrack();
@@ -232,6 +273,6 @@ int main(int argc, char** argv) {
         << "V: verbosity (>= 2 prints solutions)\n";
     init_counters();
     LOG(1) << "Solving with n = " << FLAGS_size << ", d = " << FLAGS_diff;
-    State(FLAGS_size, FLAGS_diff).solve();
+    Backtrack(FLAGS_size, FLAGS_diff).solve();
     return 0;
 }
