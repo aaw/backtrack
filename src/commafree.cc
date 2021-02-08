@@ -63,6 +63,37 @@ struct Backtrack {
     mem_t s;
     mem_t f;
 
+    inline size_t p1head(mem_t) { return p1off + hex2m[x & 0xf000]; }
+    inline size_t p2head(mem_t) { return p2off + hex2m[x & 0xff00]; }
+    inline size_t p3head(mem_t) { return p3off + hex2m[x & 0xfff0]; }
+    inline size_t s1head(mem_t) { return s1off + hex2m[(x & 0x000f)<<12]; }
+    inline size_t s2head(mem_t) { return s2off + hex2m[(x & 0x00ff)<<8]; }
+    inline size_t s3head(mem_t) { return s3off + hex2m[(x & 0x0fff)<<4]; }
+    inline size_t clhead(mem_t) { return cloff + 4 * cl[hex2m[x]]; }
+
+    inline size_t invp1(mem_t) { return p1off - m4 + hex2m[x]; }
+    inline size_t invp2(mem_t) { return p2off - m4 + hex2m[x]; }
+    inline size_t invp3(mem_t) { return p3off - m4 + hex2m[x]; }
+    inline size_t invs1(mem_t) { return s1off - m4 + hex2m[x]; }
+    inline size_t invs2(mem_t) { return s2off - m4 + hex2m[x]; }
+    inline size_t invs3(mem_t) { return s3off - m4 + hex2m[x]; }
+    inline size_t invcl(mem_t) { return cloff - m4 + hex2m[x]; }
+
+    inline size_t p1tail(mem_t) { return p1off + m4 + hex2m[x & 0xf000]; }
+    inline size_t p2tail(mem_t) { return p2off + m4 + hex2m[x & 0xff00]; }
+    inline size_t p3tail(mem_t) { return p3off + m4 + hex2m[x & 0xfff0]; }
+    inline size_t s1tail(mem_t) { return s1off + m4 + hex2m[(x & 0x000f)<<12]; }
+    inline size_t s2tail(mem_t) { return s2off + m4 + hex2m[(x & 0x00ff)<<8]; }
+    inline size_t s3tail(mem_t) { return s3off + m4 + hex2m[(x & 0x0fff)<<4]; }
+    inline size_t cltail(mem_t) { return cloff + m4 + cl[hex2m[x]]; }
+
+    #define INSERT(h, LIST) { \
+        mem_t tail = mem[LIST ## tail((h))]; \
+        mem[tail] = (h); \
+        mem[inv ## LIST((h))] = tail; \
+        mem[LIST ## tail((h))] = tail+1; \
+    }
+
     Backtrack(mem_t m, mem_t g) :
         m(m),
         m4(m*m*m*m),
@@ -115,6 +146,9 @@ struct Backtrack {
             }
         }
 
+        // Initialize prefixes and suffixes
+        // TODO
+
         // Populate classes. This is essentially Algorithm 7.2.1.1.F, iterating
         // over all prime strings of base m, length 4.
         mem_t a[5] = {0, 0, 0, 0, 0};
@@ -125,9 +159,16 @@ struct Backtrack {
                 uint16_t h = make_hex(a[1],a[2],a[3],a[4]);
                 cl[hex2m[h]] = class_id;
                 clrep[class_id] = hex2m[h];
-                // Push back a_m to cl, note index as clidx.
-                // Add all shifts of a_m that are blue to clhead/cltail
-                // Add all shifts to clinv
+                INSERT(h, p1);
+                INSERT(h, p2);
+                INSERT(h, p3);
+                INSERT(h, s1);
+                INSERT(h, s2);
+                INSERT(h, s3);
+
+                // TODO: Add all shifts of a_m that are blue to clhead/cltail
+                // TODO: Add all shifts to clinv
+
                 class_id++;
             }
             i = 4;
@@ -136,30 +177,6 @@ struct Backtrack {
             for (int j = i+1; j <= 4; ++j) { a[j] = a[j-i]; }
         }
     }
-
-    inline size_t p1head(mem_t) { return p1off + hex2m[x & 0xf000]; }
-    inline size_t p2head(mem_t) { return p2off + hex2m[x & 0xff00]; }
-    inline size_t p3head(mem_t) { return p3off + hex2m[x & 0xfff0]; }
-    inline size_t s1head(mem_t) { return s1off + (hex2m[x & 0x000f]<<12); }
-    inline size_t s2head(mem_t) { return s2off + (hex2m[x & 0x00ff]<<8); }
-    inline size_t s3head(mem_t) { return s3off + (hex2m[x & 0x0fff]<<4); }
-    inline size_t clhead(mem_t) { return cloff + 4 * cl[hex2m[x]]; }
-
-    inline size_t invp1(mem_t) { return p1off - m4 + hex2m[x]; }
-    inline size_t invp2(mem_t) { return p2off - m4 + hex2m[x]; }
-    inline size_t invp3(mem_t) { return p3off - m4 + hex2m[x]; }
-    inline size_t invs1(mem_t) { return s1off - m4 + hex2m[x]; }
-    inline size_t invs2(mem_t) { return s2off - m4 + hex2m[x]; }
-    inline size_t invs3(mem_t) { return s3off - m4 + hex2m[x]; }
-    inline size_t invcl(mem_t) { return cloff - m4 + hex2m[x]; }
-
-    inline size_t p1tail(mem_t) { return p1off + m4 + hex2m[x & 0xf000]; }
-    inline size_t p2tail(mem_t) { return p2off + m4 + hex2m[x & 0xff00]; }
-    inline size_t p3tail(mem_t) { return p3off + m4 + hex2m[x & 0xfff0]; }
-    inline size_t s1tail(mem_t) { return s1off + m4 + (hex2m[x & 0x000f]<<12); }
-    inline size_t s2tail(mem_t) { return s2off + m4 + (hex2m[x & 0x00ff]<<8); }
-    inline size_t s3tail(mem_t) { return s3off + m4 + (hex2m[x & 0x0fff]<<4); }
-    inline size_t cltail(mem_t) { return cloff + m4 + cl[hex2m[x]]; }
 
     inline uint16_t make_hex(mem_t a, mem_t b, mem_t c, mem_t d) {
         return a<<12 | b<<8 | c<<4 | d;
