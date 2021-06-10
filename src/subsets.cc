@@ -2,16 +2,38 @@
 #include "flags.h"
 #include "logging.h"
 
+#include <vector>
+#include <sstream>
+
+using std::vector;
+
+struct Edge {
+    Edge(int tip, Edge* next) : tip(tip), next(next) {}
+
+    ~Edge() { if (next != nullptr) delete next; }
+
+    int tip;
+    Edge* next;
+};
+
 struct Graph {
-    Graph(int n) : n(n), m(0) {}
+    Graph(int n) : adj(n, nullptr), m(0) {}
+
+    ~Graph() { for (Edge* head : adj) { if (head != nullptr) delete head; } }
 
     void add_edge(int u, int v) {
+        adj[u] = new Edge(v, adj[u]);
+        adj[v] = new Edge(u, adj[v]);
         m++;
     }
 
+    Edge* edges(int u) { return adj[u]; }
+
+    int num_vertices() { return adj.size(); }
     int num_edges() { return m; }
+
 private:
-    int n;
+    vector<Edge*> adj;
     int m;
 };
 
@@ -37,7 +59,7 @@ Graph parse_dimacs(const char* filename) {
         read = fscanf(f, " e %lld %lld \n", &u, &v);
         if (read != 2) break;
         if (read == EOF) break;
-        g.add_edge(u,v);
+        g.add_edge(u-1,v-1);  // DIMACS nodes are numbered [1,n]
     }
     CHECK(m == g.num_edges()) << "Mismatch in edge count. Header says "
                               << m << ", found " << g.num_edges();
@@ -46,11 +68,78 @@ Graph parse_dimacs(const char* filename) {
     return g;
 }
 
-struct Subsets {
-    Subsets(Graph& g, size_t n) {}
-
-    void solve() {}
+struct State {
+    int v;
+    int i;
+    Edge* a;
 };
+
+void connected_subsets(Graph& g, int start, int n) {
+    // R1. [Initialize.]
+    vector<int> tag(g.num_vertices());
+    vector<State> state(g.num_vertices());
+    int v = state[0].v = start;
+    int i = state[0].i = 0;
+    Edge* a = state[0].a = g.edges(start);
+    tag[start] = 1;
+    int l = 1;
+
+    while (true) {
+        // R4. [Done with level?]
+        if (a == nullptr && i == l-1) {
+            // R6. [Backtrack.]
+            --l;
+            if (l == 0) break;
+            i = state[l].i;
+            // Untag all neighbors of v_k, for i < k <= l.
+            for (int k = i+1; k <= l; ++k) {
+                Edge* ptr = g.edges(state[k].v);
+                while (ptr != nullptr) {
+                    tag[ptr->tip]--;
+                    ptr = ptr->next;
+                }
+            }
+            a = state[l].a->next;
+            while (a != nullptr) {
+                tag[a->tip]--;
+                a = a->next;
+            }
+            a = state[l].a;
+            // R3. [Advance a.]
+            a = a->next;
+            continue;  // -> R4.
+        } else if (a == nullptr) {
+            ++i;
+            v = i;
+            a = g.edges(v);
+        }
+
+        // R5. [Try a.]
+        int u = a->tip;
+        ++tag[u];
+        if (tag[u] <= 1) {
+            state[l].i = i;
+            state[l].a = a;
+            state[l].v = u;
+            ++l;
+            // R2. [Enter level l.]
+            if (l == n) {
+                INC(solutions);
+                if (LOG_ENABLED(2)) {
+                    std::ostringstream oss;
+                    for (int k = 0; k < n; ++k) {
+                        oss << state[k].v << " ";
+                    }
+                    LOG(2) << "Solution: " << oss.str();
+                }
+                l = n-1;
+            }
+        }
+
+        // R3. [Advance a.]
+        a = a->next;
+    }
+}
 
 int main(int argc, char** argv) {
     int oidx;
@@ -62,6 +151,6 @@ int main(int argc, char** argv) {
     LOG(1) << "Reading graph from file " << argv[argc-1];
     Graph g = parse_dimacs(argv[argc-1]);
     LOG(1) << "Finding connected subsets with n = " << FLAGS_size;
-    Subsets(g, FLAGS_size).solve();
+    connected_subsets(g, 0, FLAGS_size);
     return 0;
 }
