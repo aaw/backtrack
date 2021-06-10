@@ -6,7 +6,7 @@ LDFLAGS=-g
 LDLIBS=
 RM=rm -f
 
-all: bin/nqueens bin/wqueens bin/langford bin/commafree
+all: bin/nqueens bin/wqueens bin/langford bin/commafree bin/subsets
 
 bin/nqueens: src/nqueens.cc src/logging.h src/counters.h src/flags.h
 	g++ $(CPPFLAGS) -o bin/nqueens src/nqueens.cc $(LDLIBS)
@@ -20,10 +20,14 @@ bin/langford: src/langford.cc src/logging.h src/counters.h src/flags.h
 bin/commafree: src/commafree.cc src/logging.h src/counters.h src/flags.h
 	g++ $(CPPFLAGS) -o bin/commafree src/commafree.cc $(LDLIBS)
 
+bin/subsets: src/subsets.cc src/logging.h src/counters.h src/flags.h
+	g++ $(CPPFLAGS) -o bin/subsets src/subsets.cc $(LDLIBS)
+
 clean:
 	$(RM) bin/nqueens
 	$(RM) bin/wqueens
 	$(RM) bin/langford
 	$(RM) bin/commafree
+	$(RM) bin/subsets
 	$(RM) *~
 	$(RM) */*~
