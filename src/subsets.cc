@@ -74,14 +74,14 @@ struct State {
     Edge* a;
 };
 
-void connected_subsets(Graph& g, int start, int n) {
+void connected_subsets(Graph& g, int v, int n) {
     // R1. [Initialize.]
     vector<int> tag(g.num_vertices());
     vector<State> state(g.num_vertices());
-    int v = state[0].v = start;
+    state[0].v = v;
     int i = state[0].i = 0;
-    Edge* a = state[0].a = g.edges(start);
-    tag[start] = 1;
+    Edge* a = state[0].a = g.edges(v);
+    tag[v] = 1;
     int l = 1;
 
     while (true) {
@@ -110,32 +110,41 @@ void connected_subsets(Graph& g, int start, int n) {
             continue;  // -> R4.
         } else if (a == nullptr) {
             ++i;
-            v = i;
+            v = state[i].v;
             a = g.edges(v);
         }
 
         // R5. [Try a.]
         int u = a->tip;
         ++tag[u];
-        if (tag[u] <= 1) {
-            state[l].i = i;
-            state[l].a = a;
-            state[l].v = u;
-            ++l;
-            // R2. [Enter level l.]
-            if (l == n) {
-                INC(solutions);
-                if (LOG_ENABLED(2)) {
-                    std::ostringstream oss;
-                    for (int k = 0; k < n; ++k) {
-                        oss << state[k].v << " ";
-                    }
-                    LOG(2) << "Solution: " << oss.str();
-                }
-                l = n-1;
-            }
+        if (tag[u] > 1) {
+            // R3. [Advance a.]
+            a = a->next;
+            continue;
         }
 
+        state[l].i = i;
+        state[l].a = a;
+        state[l].v = u;
+        ++l;
+        // R2. [Enter level l.]
+        CHECK(i == state[l-1].i)
+            << "Want i == i_{l-1} but " << i << " != " << state[l-1].i;
+        //CHECK(v == state[i].v)
+        //    << "Want v == v_i but " << v << " != " << state[i].v;
+        CHECK(a == state[l-1].a)
+            << "Want a == a_{l-1} but " << a << " != " << state[l-1].a;
+        if (l == n) {
+            INC(solutions);
+            if (LOG_ENABLED(2)) {
+                std::ostringstream oss;
+                for (int k = 0; k < n; ++k) {
+                    oss << state[k].v << " ";
+                }
+                LOG(2) << "Solution: " << oss.str();
+            }
+            l = n-1;
+        }
         // R3. [Advance a.]
         a = a->next;
     }
