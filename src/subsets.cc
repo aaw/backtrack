@@ -1,3 +1,16 @@
+// Enumeration of all connected subgraphs of size n of a graph.
+//
+// Sample graph generators are in the test subdirectory. Examples:
+//
+// # Show that there are 113 4-vertex connected subgraphs of the 4x4 grid graph:
+// $ subsets -n4 <(test/grid.py 4)
+//
+// # Enumerate the 22 3-vertex connected subgraphs of the 3x3 grid graph:
+// $ subsets -n3 -v2 <(test/grid.py 3)
+//
+// # Enumerate the 10 3-vertex connected subgraphs of K_5:
+// $ subsets -n3 -v2 <(test/complete.py 5)
+
 #include "counters.h"
 #include "flags.h"
 #include "logging.h"
@@ -74,6 +87,24 @@ struct State {
     Edge* a;
 };
 
+std::string debug_tags(const vector<int>& tag) {
+    std::ostringstream oss;
+    for (size_t i = 0; i < tag.size(); ++i) {
+        if (tag[i] == 0) continue;
+        oss << "[" << i << ":" << tag[i] << "]";
+    }
+    return oss.str();
+}
+
+std::string debug_state(const vector<State>& state, int l) {
+    std::ostringstream oss;
+    for (int i = 0; i <= l; ++i) {
+        oss << "{i:" << state[i].i << " v:" << state[i].v
+            << " a:" << ((state[i].a == nullptr) ? -1 : state[i].a->tip) << "}";
+    }
+    return oss.str();
+}
+
 // Find all connected subsets of g that have v as their smallest member.
 void connected_subsets(Graph& g, int v, int n) {
     // R1. [Initialize.]
@@ -108,6 +139,7 @@ void connected_subsets(Graph& g, int v, int n) {
                 a = a->next;
             }
             a = state[l].a;
+            v = state[i].v;
             // R3. [Advance a.]
             a = a->next;
             continue;  // -> R4.
@@ -130,11 +162,12 @@ void connected_subsets(Graph& g, int v, int n) {
         state[l].a = a;
         state[l].v = u;
         ++l;
+
         // R2. [Enter level l.]
         CHECK(i == state[l-1].i)
             << "Want i == i_{l-1} but " << i << " != " << state[l-1].i;
-        //CHECK(v == state[i].v)
-        //    << "Want v == v_i but " << v << " != " << state[i].v;
+        CHECK(v == state[i].v)
+            << "Want v == v_i but " << v << " != " << state[i].v;
         CHECK(a == state[l-1].a)
             << "Want a == a_{l-1} but " << a << " != " << state[l-1].a;
         if (l == n) {
