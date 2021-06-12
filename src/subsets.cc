@@ -74,6 +74,7 @@ struct State {
     Edge* a;
 };
 
+// Find all connected subsets of g that have v as their smallest member.
 void connected_subsets(Graph& g, int v, int n) {
     // R1. [Initialize.]
     vector<int> tag(g.num_vertices());
@@ -82,6 +83,8 @@ void connected_subsets(Graph& g, int v, int n) {
     int i = state[0].i = 0;
     Edge* a = state[0].a = g.edges(v);
     tag[v] = 1;
+    // Ensure v is the smallest member.
+    for (int k = 0; k < v; ++k) tag[k] = 1;
     int l = 1;
 
     while (true) {
@@ -160,6 +163,8 @@ int main(int argc, char** argv) {
     LOG(1) << "Reading graph from file " << argv[argc-1];
     Graph g = parse_dimacs(argv[argc-1]);
     LOG(1) << "Finding connected subsets with n = " << FLAGS_size;
-    connected_subsets(g, 0, FLAGS_size);
+    for (int v = 0; v < g.num_vertices(); ++v) {
+        connected_subsets(g, v, FLAGS_size);
+    }
     return 0;
 }
